@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tekla License Tracker</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    .sub {
+      color: #6b7280;
+      margin-top: 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+    .row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    label {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    input, select, button {
+      font: inherit;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: white;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-secondary { background: #e5e7eb; color: #111827; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-warning { background: #d97706; color: white; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-small {
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    .license-list {
+      display: grid;
+      gap: 14px;
+    }
+    .license-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .license-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .available { background: #dcfce7; color: #166534; }
+    .in-use { background: #fee2e2; color: #991b1b; }
+    .meta {
+      color: #4b5563;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .empty {
+      color: #6b7280;
+      font-style: italic;
+      padding: 10px 0;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .stat {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .stat-title {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: bold;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .history-table th,
+    .history-table td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .muted { color: #6b7280; font-size: 13px; }
+    .status-line {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tekla License Tracker</h1>
+      <div class="sub">Shared online version using Supabase.</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-title">Total Licenses</div>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Available</div>
+          <div class="stat-value" id="statAvailable">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">In Use</div>
+          <div class="stat-value" id="statInUse">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Manage Licenses</h2>
+
+        <div class="row">
+          <label for="newLicenseName">Add New License</label>
+          <input id="newLicenseName" type="text" placeholder="Example: License Name" />
+        </div>
+        <button class="btn-primary" onclick="addLicense()">Add License</button>
+
+        <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;" />
+
+        <h3>Reserve / Release</h3>
+        <div class="row">
+          <label for="selectedLicense">License</label>
+          <select id="selectedLicense"></select>
+        </div>
+        <div class="row">
+          <label for="userName">User Name</label>
+          <input id="userName" type="text" placeholder="Example: User" />
+        </div>
+        <div class="row">
+          <label for="durationMinutes">Duration (minutes)</label>
+          <input id="durationMinutes" type="number" min="1" value="60" />
+        </div>
+        <div class="toolbar">
+          <button class="btn-success" onclick="reserveSelectedLicense()">Reserve</button>
+          <button class="btn-warning" onclick="extendSelectedLicense()">Extend</button>
+          <button class="btn-danger" onclick="releaseSelectedLicense()">Release</button>
+        </div>
+        <div class="muted">Extend uses the minutes above and adds them to the current expected end time.</div>
+        <div class="status-line" id="appStatus">Connecting to database...</div>
+      </div>
+
+      <div class="card">
+        <h2>Current Licenses</h2>
+        <div id="licenseList" class="license-list"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h2>Usage History</h2>
+      <div class="muted" style="margin-bottom:10px;">Latest sessions are shown first.</div>
+      <div style="overflow:auto;">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>License</th>
+              <th>User</th>
+              <th>Start</th>
+              <th>Expected End</th>
+              <th>Actual End</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://ozegylveiroyiumoztcl.supabase.co";
+    const SUPABASE_ANON_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function setStatus(message) {
+      document.getElementById("appStatus").textContent = message;
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString();
+    }
+
+    function updateStats(licenses) {
+      const total = licenses.length;
+      const inUse = licenses.filter(x => x.status === "in_use").length;
+      const available = total - inUse;
+
+      document.getElementById("statTotal").textContent = total;
+      document.getElementById("statAvailable").textContent = available;
+      document.getElementById("statInUse").textContent = inUse;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function fetchLicenses() {
+      const { data, error } = await supabaseClient
+        .from("licenses")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.error("fetchLicenses error:", error);
+        throw error;
+      }
+
+      return data || [];
+    }
+
+    async function fetchHistory() {
+      const { data, error } = await supabaseClient
+        .from("history")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("fetchHistory error:", error);
+        throw error;
+      }
+
+      return data || [];
+    }
+
+    function renderLicenseDropdown(licenses) {
+      const select = document.getElementById("selectedLicense");
+      const currentValue = select.value;
+      select.innerHTML = "";
+
+      licenses.forEach(license => {
+        const option = document.createElement("option");
+        option.value = license.id;
+        option.textContent = license.name;
+        select.appendChild(option);
+      });
+
+      if (licenses.some(x => x.id === currentValue)) {
+        select.value = currentValue;
+      }
+    }
+
+    async function renderLicenses() {
+      const licenses = await fetchLicenses();
+      const list = document.getElementById("licenseList");
+      list.innerHTML = "";
+
+      updateStats(licenses);
+      renderLicenseDropdown(licenses);
+
+      if (licenses.length === 0) {
+        list.innerHTML = '<div class="empty">No licenses yet. Add one from the left panel.</div>';
+        return licenses;
+      }
+
+      licenses.forEach(license => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "license-item";
+
+        const statusClass = license.status === "available" ? "available" : "in-use";
+        const statusText = license.status === "available" ? "Available" : "In Use";
+
+        wrapper.innerHTML = `
+          <div class="license-top">
+            <div>
+              <strong>${escapeHtml(license.name)}</strong>
+            </div>
+            <span class="badge ${statusClass}">${statusText}</span>
+          </div>
+          <div class="meta">
+            <div><strong>User:</strong> ${license.current_user ? escapeHtml(license.current_user) : "-"}</div>
+            <div><strong>Start:</strong> ${formatDateTime(license.start_time)}</div>
+            <div><strong>Expected End:</strong> ${formatDateTime(license.expected_end_time)}</div>
+          </div>
+          <div class="actions">
+            <button class="btn-secondary btn-small" onclick="selectLicense('${license.id}')">Select</button>
+            <button class="btn-secondary btn-small" onclick="renameLicense('${license.id}')">Rename</button>
+            <button class="btn-danger btn-small" onclick="removeLicense('${license.id}')">Remove</button>
+          </div>
+        `;
+
+        list.appendChild(wrapper);
+      });
+
+      return licenses;
+    }
+
+    async function renderHistory() {
+      const history = await fetchHistory();
+      const body = document.getElementById("historyBody");
+      body.innerHTML = "";
+
+      if (history.length === 0) {
+        body.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty">No usage history yet.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      history.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(item.license_name)}</td>
+          <td>${escapeHtml(item.user || "-")}</td>
+          <td>${formatDateTime(item.start_time)}</td>
+          <td>${formatDateTime(item.expected_end_time)}</td>
+          <td>${formatDateTime(item.actual_end_time)}</td>
+          <td>${escapeHtml(item.status)}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    async function renderAll() {
+      setStatus("Loading shared data...");
+      await renderLicenses();
+      await renderHistory();
+      setStatus("Connected to shared database.");
+    }
+
+    async function addLicenseToDb(name) {
+      const { error } = await supabaseClient
+        .from("licenses")
+        .insert([{ name, status: "available", current_user: "" }]);
+
+      if (error) {
+        console.error("addLicense error:", error);
+        alert("Failed to add license.");
+        return false;
+      }
+      return true;
+    }
+
+    async function removeLicenseFromDb(id) {
+      const { error } = await supabaseClient
+        .from("licenses")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("removeLicense error:", error);
+        alert("Failed to remove license.");
+        return false;
+      }
+      return true;
+    }
+
+    async function renameLicenseInDb(id, name) {
+      const { error } = await supabaseClient
+        .from("licenses")
+        .update({ name })
+        .eq("id", id);
+
+      if (error) {
+        console.error("renameLicense error:", error);
+        alert("Failed to rename license.");
+        return false;
+      }
+      return true;
+    }
+
+    function selectLicense(id) {
+      document.getElementById("selectedLicense").value = id;
+    }
+
+    async function getSelectedLicense() {
+      const licenseId = document.getElementById("selectedLicense").value;
+      if (!licenseId) {
+        alert("Please select a license.");
+        return null;
+      }
+
+      const licenses = await fetchLicenses();
+      return licenses.find(x => x.id === licenseId) || null;
+    }
+
+    async function addLicense() {
+      const input = document.getElementById("newLicenseName");
+      const name = input.value.trim();
+      if (!name) {
+        alert("Please enter a license name.");
+        return;
+      }
+
+      setStatus("Adding license...");
+      const ok = await addLicenseToDb(name);
+      if (!ok) {
+        setStatus("Could not add license.");
+        return;
+      }
+
+      input.value = "";
+      await renderAll();
+    }
+
+    async function removeLicense(id) {
+      const licenses = await fetchLicenses();
+      const license = licenses.find(x => x.id === id);
+      if (!license) return;
+
+      const ok = confirm(`Remove ${license.name}?`);
+      if (!ok) return;
+
+      setStatus("Removing license...");
+      const removed = await removeLicenseFromDb(id);
+      if (!removed) {
+        setStatus("Could not remove license.");
+        return;
+      }
+
+      await renderAll();
+    }
+
+    async function renameLicense(id) {
+      const licenses = await fetchLicenses();
+      const license = licenses.find(x => x.id === id);
+      if (!license) return;
+
+      const newName = prompt("Enter new license name:", license.name);
+      if (newName === null) return;
+
+      const cleanName = newName.trim();
+      if (!cleanName) {
+        alert("Name cannot be empty.");
+        return;
+      }
+
+      setStatus("Renaming license...");
+      const ok = await renameLicenseInDb(id, cleanName);
+      if (!ok) {
+        setStatus("Could not rename license.");
+        return;
+      }
+
+      await renderAll();
+    }
+
+    async function reserveSelectedLicense() {
+      const license = await getSelectedLicense();
+      const userName = document.getElementById("userName").value.trim();
+      const minutes = parseInt(document.getElementById("durationMinutes").value, 10);
+
+      if (!license) {
+        alert("License not found.");
+        return;
+      }
+      if (!userName) {
+        alert("Please enter a user name.");
+        return;
+      }
+      if (!minutes || minutes <= 0) {
+        alert("Please enter a valid duration.");
+        return;
+      }
+      if (license.status === "in_use") {
+        alert("This license is already in use.");
+        return;
+      }
+
+      const start = new Date();
+      const expectedEnd = new Date(start.getTime() + minutes * 60000);
+
+      setStatus("Reserving license...");
+
+      const { error: updateError } = await supabaseClient
+        .from("licenses")
+        .update({
+          status: "in_use",
+          current_user: userName,
+          start_time: start.toISOString(),
+          expected_end_time: expectedEnd.toISOString()
+        })
+        .eq("id", license.id)
+        .eq("status", "available");
+
+      if (updateError) {
+        console.error("reserve update error:", updateError);
+        alert("Failed to reserve license.");
+        setStatus("Could not reserve license.");
+        return;
+      }
+
+      const { error: historyError } = await supabaseClient
+        .from("history")
+        .insert([{
+          license_id: license.id,
+          license_name: license.name,
+          user: userName,
+          start_time: start.toISOString(),
+          expected_end_time: expectedEnd.toISOString(),
+          actual_end_time: null,
+          status: "active"
+        }]);
+
+      if (historyError) {
+        console.error("reserve history error:", historyError);
+        alert("License updated, but history insert failed.");
+        setStatus("License reserved, but history failed.");
+        await renderAll();
+        return;
+      }
+
+      await renderAll();
+    }
+
+    async function extendSelectedLicense() {
+      const license = await getSelectedLicense();
+      const minutes = parseInt(document.getElementById("durationMinutes").value, 10);
+
+      if (!license) {
+        alert("License not found.");
+        return;
+      }
+      if (!minutes || minutes <= 0) {
+        alert("Please enter a valid duration.");
+        return;
+      }
+      if (license.status !== "in_use") {
+        alert("Selected license is not currently in use.");
+        return;
+      }
+
+      const base = license.expected_end_time ? new Date(license.expected_end_time) : new Date();
+      const extended = new Date(base.getTime() + minutes * 60000);
+
+      setStatus("Extending license...");
+
+      const { error: licenseError } = await supabaseClient
+        .from("licenses")
+        .update({ expected_end_time: extended.toISOString() })
+        .eq("id", license.id);
+
+      if (licenseError) {
+        console.error("extend license error:", licenseError);
+        alert("Failed to extend license.");
+        setStatus("Could not extend license.");
+        return;
+      }
+
+      const { data: activeRows, error: fetchError } = await supabaseClient
+        .from("history")
+        .select("id")
+        .eq("license_id", license.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (fetchError) {
+        console.error("extend fetch history error:", fetchError);
+        setStatus("License extended, but history fetch failed.");
+        await renderAll();
+        return;
+      }
+
+      if (activeRows && activeRows.length > 0) {
+        const { error: historyError } = await supabaseClient
+          .from("history")
+          .update({ expected_end_time: extended.toISOString() })
+          .eq("id", activeRows[0].id);
+
+        if (historyError) {
+          console.error("extend history error:", historyError);
+          setStatus("License extended, but history update failed.");
+          await renderAll();
+          return;
+        }
+      }
+
+      await renderAll();
+    }
+
+    async function releaseSelectedLicense() {
+      const license = await getSelectedLicense();
+      if (!license) {
+        alert("License not found.");
+        return;
+      }
+      if (license.status !== "in_use") {
+        alert("This license is already available.");
+        return;
+      }
+
+      const now = new Date().toISOString();
+      setStatus("Releasing license...");
+
+      const { error: licenseError } = await supabaseClient
+        .from("licenses")
+        .update({
+          status: "available",
+          current_user: "",
+          start_time: null,
+          expected_end_time: null
+        })
+        .eq("id", license.id);
+
+      if (licenseError) {
+        console.error("release license error:", licenseError);
+        alert("Failed to release license.");
+        setStatus("Could not release license.");
+        return;
+      }
+
+      const { data: activeRows, error: fetchError } = await supabaseClient
+        .from("history")
+        .select("id")
+        .eq("license_id", license.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (fetchError) {
+        console.error("release fetch history error:", fetchError);
+        setStatus("License released, but history fetch failed.");
+        await renderAll();
+        return;
+      }
+
+      if (activeRows && activeRows.length > 0) {
+        const { error: historyError } = await supabaseClient
+          .from("history")
+          .update({
+            actual_end_time: now,
+            status: "released"
+          })
+          .eq("id", activeRows[0].id);
+
+        if (historyError) {
+          console.error("release history error:", historyError);
+          setStatus("License released, but history update failed.");
+          await renderAll();
+          return;
+        }
+      }
+
+      await renderAll();
+    }
+
+    renderAll().catch(error => {
+      console.error("Initial render error:", error);
+      setStatus("Could not connect. Check your Supabase URL, key, tables, and policies.");
+    });
+  </script>
+</body>
+</html>
