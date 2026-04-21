@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tekla License Tracker</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    .sub {
+      color: #6b7280;
+      margin-top: 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+    .row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    label {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    input, select, button {
+      font: inherit;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: white;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-secondary { background: #e5e7eb; color: #111827; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-warning { background: #d97706; color: white; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-small {
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    .license-list {
+      display: grid;
+      gap: 14px;
+    }
+    .license-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .license-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .available { background: #dcfce7; color: #166534; }
+    .in-use { background: #fee2e2; color: #991b1b; }
+    .meta {
+      color: #4b5563;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .empty {
+      color: #6b7280;
+      font-style: italic;
+      padding: 10px 0;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .stat {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .stat-title {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: bold;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .history-table th,
+    .history-table td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .muted { color: #6b7280; font-size: 13px; }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tekla License Tracker</h1>
+      <div class="sub">Single-file HTML app. Data is saved in your browser using localStorage.</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-title">Total Licenses</div>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Available</div>
+          <div class="stat-value" id="statAvailable">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">In Use</div>
+          <div class="stat-value" id="statInUse">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Manage Licenses</h2>
+
+        <div class="row">
+          <label for="newLicenseName">Add New License</label>
+          <input id="newLicenseName" type="text" placeholder="Example: License Name" />
+        </div>
+        <button class="btn-primary" onclick="addLicense()">Add License</button>
+
+        <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;" />
+
+        <h3>Reserve / Release</h3>
+        <div class="row">
+          <label for="selectedLicense">License</label>
+          <select id="selectedLicense"></select>
+        </div>
+        <div class="row">
+          <label for="userName">User Name</label>
+          <input id="userName" type="text" placeholder="Example: User" />
+        </div>
+        <div class="row">
+          <label for="durationMinutes">Duration (minutes)</label>
+          <input id="durationMinutes" type="number" min="1" value="60" />
+        </div>
+        <div class="toolbar">
+          <button class="btn-success" onclick="reserveSelectedLicense()">Reserve</button>
+          <button class="btn-warning" onclick="extendSelectedLicense()">Extend</button>
+          <button class="btn-danger" onclick="releaseSelectedLicense()">Release</button>
+        </div>
+        <div class="muted">Extend uses the minutes above and adds them to the current expected end time.</div>
+
+        <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;" />
+
+        <h3>Backup</h3>
+        <div class="toolbar">
+          <button class="btn-secondary" onclick="exportData()">Export JSON</button>
+          <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Import JSON</button>
+          <button class="btn-danger" onclick="resetAllData()">Reset All</button>
+        </div>
+        <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importData(event)" />
+      </div>
+
+      <div class="card">
+        <h2>Current Licenses</h2>
+        <div id="licenseList" class="license-list"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h2>Usage History</h2>
+      <div class="muted" style="margin-bottom:10px;">Latest sessions are shown first.</div>
+      <div style="overflow:auto;">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>License</th>
+              <th>User</th>
+              <th>Start</th>
+              <th>Expected End</th>
+              <th>Actual End</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "tekla-license-tracker-data";
+
+    const defaultData = {
+      licenses: [
+        {
+          id: crypto.randomUUID(),
+          name: "Tekla-1",
+          status: "available",
+          currentUser: "",
+          startTime: "",
+          expectedEndTime: ""
+        },
+        {
+          id: crypto.randomUUID(),
+          name: "Tekla-2",
+          status: "available",
+          currentUser: "",
+          startTime: "",
+          expectedEndTime: ""
+        },
+        {
+          id: crypto.randomUUID(),
+          name: "Tekla-3",
+          status: "available",
+          currentUser: "",
+          startTime: "",
+          expectedEndTime: ""
+        }
+      ],
+      history: []
+    };
+
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        saveData(defaultData);
+        return structuredClone(defaultData);
+      }
+      try {
+        return JSON.parse(raw);
+      } catch {
+        saveData(defaultData);
+        return structuredClone(defaultData);
+      }
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function getData() {
+      return loadData();
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString();
+    }
+
+    function updateStats(data) {
+      const total = data.licenses.length;
+      const inUse = data.licenses.filter(x => x.status === "in_use").length;
+      const available = total - inUse;
+
+      document.getElementById("statTotal").textContent = total;
+      document.getElementById("statAvailable").textContent = available;
+      document.getElementById("statInUse").textContent = inUse;
+    }
+
+    function renderLicenseDropdown(data) {
+      const select = document.getElementById("selectedLicense");
+      const currentValue = select.value;
+      select.innerHTML = "";
+
+      data.licenses.forEach(license => {
+        const option = document.createElement("option");
+        option.value = license.id;
+        option.textContent = license.name;
+        select.appendChild(option);
+      });
+
+      if (data.licenses.some(x => x.id === currentValue)) {
+        select.value = currentValue;
+      }
+    }
+
+    function renderLicenses() {
+      const data = getData();
+      const list = document.getElementById("licenseList");
+      list.innerHTML = "";
+
+      updateStats(data);
+      renderLicenseDropdown(data);
+
+      if (data.licenses.length === 0) {
+        list.innerHTML = '<div class="empty">No licenses yet. Add one from the left panel.</div>';
+        return;
+      }
+
+      data.licenses.forEach(license => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "license-item";
+
+        const statusClass = license.status === "available" ? "available" : "in-use";
+        const statusText = license.status === "available" ? "Available" : "In Use";
+
+        wrapper.innerHTML = `
+          <div class="license-top">
+            <div>
+              <strong>${escapeHtml(license.name)}</strong>
+            </div>
+            <span class="badge ${statusClass}">${statusText}</span>
+          </div>
+          <div class="meta">
+            <div><strong>User:</strong> ${license.currentUser ? escapeHtml(license.currentUser) : "-"}</div>
+            <div><strong>Start:</strong> ${formatDateTime(license.startTime)}</div>
+            <div><strong>Expected End:</strong> ${formatDateTime(license.expectedEndTime)}</div>
+          </div>
+          <div class="actions">
+            <button class="btn-secondary btn-small" onclick="selectLicense('${license.id}')">Select</button>
+            <button class="btn-secondary btn-small" onclick="renameLicense('${license.id}')">Rename</button>
+            <button class="btn-danger btn-small" onclick="removeLicense('${license.id}')">Remove</button>
+          </div>
+        `;
+
+        list.appendChild(wrapper);
+      });
+    }
+
+    function renderHistory() {
+      const data = getData();
+      const body = document.getElementById("historyBody");
+      body.innerHTML = "";
+
+      if (data.history.length === 0) {
+        body.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty">No usage history yet.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      const ordered = [...data.history].reverse();
+      ordered.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(item.licenseName)}</td>
+          <td>${escapeHtml(item.user || "-")}</td>
+          <td>${formatDateTime(item.startTime)}</td>
+          <td>${formatDateTime(item.expectedEndTime)}</td>
+          <td>${formatDateTime(item.actualEndTime)}</td>
+          <td>${escapeHtml(item.status)}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function renderAll() {
+      renderLicenses();
+      renderHistory();
+    }
+
+    function addLicense() {
+      const input = document.getElementById("newLicenseName");
+      const name = input.value.trim();
+      if (!name) {
+        alert("Please enter a license name.");
+        return;
+      }
+
+      const data = getData();
+      const exists = data.licenses.some(x => x.name.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        alert("A license with this name already exists.");
+        return;
+      }
+
+      data.licenses.push({
+        id: crypto.randomUUID(),
+        name,
+        status: "available",
+        currentUser: "",
+        startTime: "",
+        expectedEndTime: ""
+      });
+
+      saveData(data);
+      input.value = "";
+      renderAll();
+    }
+
+    function removeLicense(id) {
+      const data = getData();
+      const license = data.licenses.find(x => x.id === id);
+      if (!license) return;
+
+      const ok = confirm(`Remove ${license.name}?`);
+      if (!ok) return;
+
+      data.licenses = data.licenses.filter(x => x.id !== id);
+      saveData(data);
+      renderAll();
+    }
+
+    function renameLicense(id) {
+      const data = getData();
+      const license = data.licenses.find(x => x.id === id);
+      if (!license) return;
+
+      const newName = prompt("Enter new license name:", license.name);
+      if (newName === null) return;
+
+      const cleanName = newName.trim();
+      if (!cleanName) {
+        alert("Name cannot be empty.");
+        return;
+      }
+
+      const exists = data.licenses.some(x => x.id !== id && x.name.toLowerCase() === cleanName.toLowerCase());
+      if (exists) {
+        alert("Another license already uses this name.");
+        return;
+      }
+
+      const oldName = license.name;
+      license.name = cleanName;
+
+      data.history.forEach(item => {
+        if (item.licenseId === id && item.licenseName === oldName) {
+          item.licenseName = cleanName;
+        }
+      });
+
+      saveData(data);
+      renderAll();
+    }
+
+    function selectLicense(id) {
+      document.getElementById("selectedLicense").value = id;
+    }
+
+    function reserveSelectedLicense() {
+      const data = getData();
+      const licenseId = document.getElementById("selectedLicense").value;
+      const userName = document.getElementById("userName").value.trim();
+      const minutes = parseInt(document.getElementById("durationMinutes").value, 10);
+
+      if (!licenseId) {
+        alert("Please select a license.");
+        return;
+      }
+      if (!userName) {
+        alert("Please enter a user name.");
+        return;
+      }
+      if (!minutes || minutes <= 0) {
+        alert("Please enter a valid duration.");
+        return;
+      }
+
+      const license = data.licenses.find(x => x.id === licenseId);
+      if (!license) {
+        alert("License not found.");
+        return;
+      }
+      if (license.status === "in_use") {
+        alert("This license is already in use.");
+        return;
+      }
+
+      const start = new Date();
+      const expectedEnd = new Date(start.getTime() + minutes * 60000);
+
+      license.status = "in_use";
+      license.currentUser = userName;
+      license.startTime = start.toISOString();
+      license.expectedEndTime = expectedEnd.toISOString();
+
+      data.history.push({
+        id: crypto.randomUUID(),
+        licenseId: license.id,
+        licenseName: license.name,
+        user: userName,
+        startTime: license.startTime,
+        expectedEndTime: license.expectedEndTime,
+        actualEndTime: "",
+        status: "active"
+      });
+
+      saveData(data);
+      renderAll();
+    }
+
+    function extendSelectedLicense() {
+      const data = getData();
+      const licenseId = document.getElementById("selectedLicense").value;
+      const minutes = parseInt(document.getElementById("durationMinutes").value, 10);
+
+      if (!licenseId) {
+        alert("Please select a license.");
+        return;
+      }
+      if (!minutes || minutes <= 0) {
+        alert("Please enter a valid duration.");
+        return;
+      }
+
+      const license = data.licenses.find(x => x.id === licenseId);
+      if (!license || license.status !== "in_use") {
+        alert("Selected license is not currently in use.");
+        return;
+      }
+
+      const base = license.expectedEndTime ? new Date(license.expectedEndTime) : new Date();
+      const extended = new Date(base.getTime() + minutes * 60000);
+      license.expectedEndTime = extended.toISOString();
+
+      const activeHistory = [...data.history].reverse().find(
+        x => x.licenseId === license.id && x.status === "active"
+      );
+      if (activeHistory) {
+        activeHistory.expectedEndTime = license.expectedEndTime;
+      }
+
+      saveData(data);
+      renderAll();
+    }
+
+    function releaseSelectedLicense() {
+      const data = getData();
+      const licenseId = document.getElementById("selectedLicense").value;
+      if (!licenseId) {
+        alert("Please select a license.");
+        return;
+      }
+
+      const license = data.licenses.find(x => x.id === licenseId);
+      if (!license) {
+        alert("License not found.");
+        return;
+      }
+      if (license.status !== "in_use") {
+        alert("This license is already available.");
+        return;
+      }
+
+      const activeHistory = [...data.history].reverse().find(
+        x => x.licenseId === license.id && x.status === "active"
+      );
+      if (activeHistory) {
+        activeHistory.actualEndTime = new Date().toISOString();
+        activeHistory.status = "released";
+      }
+
+      license.status = "available";
+      license.currentUser = "";
+      license.startTime = "";
+      license.expectedEndTime = "";
+
+      saveData(data);
+      renderAll();
+    }
+
+    function exportData() {
+      const data = getData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tekla-license-tracker-backup.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!imported.licenses || !Array.isArray(imported.licenses) || !imported.history || !Array.isArray(imported.history)) {
+            throw new Error("Invalid format");
+          }
+          saveData(imported);
+          renderAll();
+          alert("Data imported successfully.");
+        } catch {
+          alert("Invalid JSON backup file.");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    }
+
+    function resetAllData() {
+      const ok = confirm("Reset all data? This will clear licenses and history.");
+      if (!ok) return;
+      saveData(structuredClone(defaultData));
+      renderAll();
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
