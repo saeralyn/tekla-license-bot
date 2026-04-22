@@ -257,8 +257,6 @@
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     function setStatus(message) {
       document.getElementById("appStatus").textContent = message;
     }
@@ -362,7 +360,7 @@
             <span class="badge ${statusClass}">${statusText}</span>
           </div>
           <div class="meta">
-            <div><strong>User:</strong> ${license.current_user ? escapeHtml(license.current_user) : "-"}</div>
+            <div><strong>User:</strong> ${license.holder_name ? escapeHtml(license.holder_name) : "-"}</div>
             <div><strong>Start:</strong> ${formatDateTime(license.start_time)}</div>
             <div><strong>Expected End:</strong> ${formatDateTime(license.expected_end_time)}</div>
           </div>
@@ -397,7 +395,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${escapeHtml(item.license_name)}</td>
-          <td>${escapeHtml(item.user || "-")}</td>
+          <td>${escapeHtml(item.holder_name || "-")}</td>
           <td>${formatDateTime(item.start_time)}</td>
           <td>${formatDateTime(item.expected_end_time)}</td>
           <td>${formatDateTime(item.actual_end_time)}</td>
@@ -417,7 +415,7 @@
     async function addLicenseToDb(name) {
       const { error } = await supabaseClient
         .from("licenses")
-        .insert([{ name, status: "available", current_user: "" }]);
+        .insert([{ name, status: "available", holder_name: "" }]);
 
       if (error) {
         console.error("addLicense error:", error);
@@ -562,7 +560,7 @@
         .from("licenses")
         .update({
           status: "in_use",
-          current_user: userName,
+          holder_name: userName,
           start_time: start.toISOString(),
           expected_end_time: expectedEnd.toISOString()
         })
@@ -683,7 +681,7 @@
         .from("licenses")
         .update({
           status: "available",
-          current_user: "",
+          holder_name: "",
           start_time: null,
           expected_end_time: null
         })
