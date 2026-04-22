@@ -211,15 +211,23 @@
           <input id="userName" type="text" placeholder="Example: User" />
         </div>
         <div class="row">
-          <label for="durationMinutes">Duration (minutes)</label>
-          <input id="durationMinutes" type="number" min="1" value="60" />
+          <label for="durationMode">Duration</label>
+          <select id="durationMode" onchange="toggleDurationInput()">
+            <option value="unlimited">Unlimited</option>
+            <option value="specify">Specify</option>
+          </select>
+        </div>
+
+        <div class="row" id="durationHoursRow" style="display:none;">
+          <label for="durationHours">Duration (hours)</label>
+          <input id="durationHours" type="number" min="1" step="1" placeholder="Example: 2" />
         </div>
         <div class="toolbar">
           <button class="btn-success" onclick="reserveSelectedLicense()">Reserve</button>
           <button class="btn-warning" onclick="extendSelectedLicense()">Extend</button>
           <button class="btn-danger" onclick="releaseSelectedLicense()">Release</button>
         </div>
-        <div class="muted">Extend uses the minutes above and adds them to the current expected end time.</div>
+        <div class="muted">If Duration is set to Specify, Please add the entered hours to the current expected end time.</div>
         <div class="status-line" id="appStatus">Connecting to database...</div>
       </div>
 
@@ -259,6 +267,13 @@
 
     function setStatus(message) {
       document.getElementById("appStatus").textContent = message;
+    }
+
+
+    function toggleDurationInput() {
+      const mode = document.getElementById("durationMode").value;
+      const row = document.getElementById("durationHoursRow");
+      row.style.display = mode === "specify" ? "flex" : "none";
     }
 
     function formatDateTime(value) {
@@ -532,7 +547,8 @@
     async function reserveSelectedLicense() {
       const license = await getSelectedLicense();
       const userName = document.getElementById("userName").value.trim();
-      const minutes = parseInt(document.getElementById("durationMinutes").value, 10);
+      const mode = document.getElementById("durationMode").value;
+      const hours = parseInt(document.getElementById("durationHours").value, 10);
 
       if (!license) {
         alert("License not found.");
@@ -542,38 +558,42 @@
         alert("Please enter a user name.");
         return;
       }
-      if (!minutes || minutes <= 0) {
-        alert("Please enter a valid duration.");
-        return;
-      }
       if (license.status === "in_use") {
         alert("This license is already in use.");
         return;
       }
-
+    
       const start = new Date();
-      const expectedEnd = new Date(start.getTime() + minutes * 60000);
-
+      let expectedEnd = null;
+    
+      if (mode === "specify") {
+        if (!hours || hours <= 0) {
+          alert("Please enter a valid duration in hours.");
+          return;
+        }
+        expectedEnd = new Date(start.getTime() + hours * 60 * 60000);
+      }
+    
       setStatus("Reserving license...");
-
+    
       const { error: updateError } = await supabaseClient
         .from("licenses")
         .update({
           status: "in_use",
           holder_name: userName,
           start_time: start.toISOString(),
-          expected_end_time: expectedEnd.toISOString()
+          expected_end_time: expectedEnd ? expectedEnd.toISOString() : null
         })
         .eq("id", license.id)
         .eq("status", "available");
-
+      
       if (updateError) {
         console.error("reserve update error:", updateError);
         alert("Failed to reserve license.");
         setStatus("Could not reserve license.");
         return;
       }
-
+    
       const { error: historyError } = await supabaseClient
         .from("history")
         .insert([{
@@ -581,11 +601,11 @@
           license_name: license.name,
           holder_name: userName,
           start_time: start.toISOString(),
-          expected_end_time: expectedEnd.toISOString(),
+          expected_end_time: expectedEnd ? expectedEnd.toISOString() : null,
           actual_end_time: null,
           status: "active"
         }]);
-
+      
       if (historyError) {
         console.error("reserve history error:", historyError);
         alert("License updated, but history insert failed.");
@@ -593,44 +613,49 @@
         await renderAll();
         return;
       }
-
+    
       await renderAll();
     }
 
     async function extendSelectedLicense() {
       const license = await getSelectedLicense();
-      const minutes = parseInt(document.getElementById("durationMinutes").value, 10);
+      const mode = document.getElementById("durationMode").value;
+      const hours = parseInt(document.getElementById("durationHours").value, 10);
 
       if (!license) {
         alert("License not found.");
-        return;
-      }
-      if (!minutes || minutes <= 0) {
-        alert("Please enter a valid duration.");
         return;
       }
       if (license.status !== "in_use") {
         alert("Selected license is not currently in use.");
         return;
       }
-
+      if (mode !== "specify") {
+        alert("Please choose Specify to extend by hours.");
+        return;
+      }
+      if (!hours || hours <= 0) {
+        alert("Please enter a valid duration in hours.");
+        return;
+      }
+    
       const base = license.expected_end_time ? new Date(license.expected_end_time) : new Date();
-      const extended = new Date(base.getTime() + minutes * 60000);
-
+      const extended = new Date(base.getTime() + hours * 60 * 60000);
+    
       setStatus("Extending license...");
-
+    
       const { error: licenseError } = await supabaseClient
         .from("licenses")
         .update({ expected_end_time: extended.toISOString() })
         .eq("id", license.id);
-
+    
       if (licenseError) {
         console.error("extend license error:", licenseError);
         alert("Failed to extend license.");
         setStatus("Could not extend license.");
         return;
       }
-
+    
       const { data: activeRows, error: fetchError } = await supabaseClient
         .from("history")
         .select("id")
@@ -638,20 +663,20 @@
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1);
-
+    
       if (fetchError) {
         console.error("extend fetch history error:", fetchError);
         setStatus("License extended, but history fetch failed.");
         await renderAll();
         return;
       }
-
+    
       if (activeRows && activeRows.length > 0) {
         const { error: historyError } = await supabaseClient
           .from("history")
           .update({ expected_end_time: extended.toISOString() })
           .eq("id", activeRows[0].id);
-
+      
         if (historyError) {
           console.error("extend history error:", historyError);
           setStatus("License extended, but history update failed.");
@@ -659,7 +684,7 @@
           return;
         }
       }
-
+    
       await renderAll();
     }
 
@@ -731,7 +756,7 @@
 
     renderAll().catch(error => {
       console.error("Initial render error:", error);
-      setStatus("Could not connect. Check your Supabase URL, key, tables, and policies.");
+      setStatus("Could not connect. Check Supabase URL, key, tables, and policies.");
     });
   </script>
 </body>
