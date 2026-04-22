@@ -253,7 +253,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://ozegylveiroyiumoztcl.supabase.co";
-    const SUPABASE_ANON_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96ZWd5bHZlaXJveWl1bW96dGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NDg5MTEsImV4cCI6MjA5MjMyNDkxMX0.8NYA2nqd5jb7Jy1usVEh1j1PP9qNv0JNs-PMyo1x5rE";
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
